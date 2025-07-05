@@ -26,6 +26,8 @@ const firebaseConfig = {
   measurementId: "G-NYDLMEV2TE",
 };
 
+const GEMINI_API_KEY = "AIzaSyAhnZ9oCOlvsw-Dn8AaoFPFWO6H1POWN4U"; // <-- Replace with your actual Gemini API key
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -38,7 +40,7 @@ const postsContainer = document.getElementById("postsContainer");
 
 let currentUserEmail = null;
 
-// Redirect to login if not authenticated, else set current user email
+// Redirect if not logged in, else set welcome
 onAuthStateChanged(auth, (user) => {
   if (!user) {
     window.location.href = "index.html";
@@ -61,7 +63,6 @@ const postsCol = collection(db, "posts");
 
 postBtn.addEventListener("click", async () => {
   const content = postContent.value.trim();
-
   if (!content) {
     alert("Please write something to post!");
     return;
@@ -74,10 +75,10 @@ postBtn.addEventListener("click", async () => {
   try {
     await addDoc(postsCol, {
       username: currentUserEmail,
-      content: content,
+      content,
       createdAt: serverTimestamp(),
       likes: 0,
-      likedBy: [],       // Array to track who liked the post
+      likedBy: [],
       comments: [],
       shares: 0,
     });
@@ -87,20 +88,18 @@ postBtn.addEventListener("click", async () => {
   }
 });
 
-// Toggle like/unlike for a post by current user
+// Toggle like/unlike for post
 async function toggleLike(postId, likedBy) {
   const postRef = doc(db, "posts", postId);
   const userHasLiked = likedBy.includes(currentUserEmail);
 
   try {
     if (userHasLiked) {
-      // Unlike: remove user email from likedBy, decrement likes
       await updateDoc(postRef, {
-        likedBy: likedBy.filter(email => email !== currentUserEmail),
+        likedBy: likedBy.filter((email) => email !== currentUserEmail),
         likes: likedBy.length - 1,
       });
     } else {
-      // Like: add user email to likedBy, increment likes
       await updateDoc(postRef, {
         likedBy: [...likedBy, currentUserEmail],
         likes: likedBy.length + 1,
@@ -111,7 +110,52 @@ async function toggleLike(postId, likedBy) {
   }
 }
 
-// Listen for posts and render them with clickable likes text
+// Call Gemini API to analyze content
+async function callGeminiFlashAPI(prompt) {
+  const url =
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+
+  const body = {
+    contents: [
+      {
+        parts: [{ text: prompt }],
+      },
+    ],
+  };
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-goog-api-key": GEMINI_API_KEY,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error?.message || "Network response was not ok");
+  }
+
+  return await response.json();
+}
+
+// Typewriter effect for showing text
+function typewriterEffect(element, text, speed = 20) {
+  element.innerHTML = "";
+  let i = 0;
+
+  function type() {
+    if (i < text.length) {
+      element.innerHTML += text.charAt(i);
+      i++;
+      setTimeout(type, speed);
+    }
+  }
+
+  type();
+}
+
 const postsQuery = query(postsCol, orderBy("createdAt", "desc"));
 onSnapshot(postsQuery, (snapshot) => {
   postsContainer.innerHTML = "";
@@ -138,18 +182,50 @@ onSnapshot(postsQuery, (snapshot) => {
       <p>${post.content}</p>
       <small>
         <span id="likes_${postId}" style="cursor:pointer; color: ${
-          userHasLiked ? "#007bff" : "#555"
-        };" title="Click to ${userHasLiked ? "unlike" : "like"}">
+      userHasLiked ? "#007bff" : "#555"
+    };" title="Click to ${userHasLiked ? "unlike" : "like"}">
           Likes: ${post.likes}
-        </span> 
+        </span>
         | Comments: ${post.comments.length} | Shares: ${post.shares}
       </small>
     `;
 
+    // Analyze button & container
+    const analyzeBtn = document.createElement("button");
+    analyzeBtn.textContent = "Analyze";
+    analyzeBtn.style.marginTop = "10px";
+    analyzeBtn.style.cursor = "pointer";
+
+    const analysisDiv = document.createElement("div");
+    analysisDiv.style.marginTop = "10px";
+    analysisDiv.style.minHeight = "40px";
+    analysisDiv.style.color = "#333";
+
+    postDiv.appendChild(analyzeBtn);
+    postDiv.appendChild(analysisDiv);
+
     postsContainer.appendChild(postDiv);
 
-    // Add click event to toggle like on Likes text
+    // Like toggle event
     const likesSpan = document.getElementById(`likes_${postId}`);
-    likesSpan.addEventListener("click", () => toggleLike(postId, post.likedBy || []));
+    likesSpan.addEventListener("click", () =>
+      toggleLike(postId, post.likedBy || [])
+    );
+
+    // Analyze button click event
+    analyzeBtn.addEventListener("click", async () => {
+      analysisDiv.textContent = "⏳ Analyzing...";
+      try {
+        const analysisResult = await callGeminiFlashAPI(
+          post.content + " .Now analyse this and tell me its sentiments in one sentence"
+        );
+        const content =
+          analysisResult?.candidates?.[0]?.content?.parts?.[0]?.text ||
+          "No valid analysis.";
+        typewriterEffect(analysisDiv, content);
+      } catch (error) {
+        analysisDiv.textContent = "❌ Error: " + error.message;
+      }
+    });
   });
 });
