@@ -3,65 +3,25 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Home - Posts</title>
+  <title>Home</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #e3f2fd;
-      padding: 20px;
-      max-width: 400px;
-      margin: auto;
-    }
-    h1 {
-      color: #007bff;
-      text-align: center;
-    }
-    textarea {
-      width: 100%;
-      resize: vertical;
-      padding: 10px;
-      font-size: 1rem;
-      margin-bottom: 10px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-    }
-    button {
-      background: #007bff;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 5px;
-      font-weight: bold;
-      cursor: pointer;
-      margin-right: 10px;
-    }
-    button:hover {
-      background: #0056b3;
-    }
-    #postsContainer > div {
-      background: white;
-      padding: 10px;
-      margin-top: 15px;
-      border-radius: 8px;
-      box-shadow: 0 0 5px rgba(0,0,0,0.1);
-    }
-    #postsContainer strong {
-      display: block;
-      margin-bottom: 5px;
-    }
-    #postsContainer small {
-      color: #555;
-    }
+    body { font-family: Arial; padding: 20px; background: #e3f2fd; max-width: 500px; margin: auto; }
+    textarea, input[type="file"] { width: 100%; margin-bottom: 10px; padding: 10px; border-radius: 5px; border: 1px solid #ccc; }
+    button { background: #007bff; color: white; padding: 10px; border: none; border-radius: 5px; font-weight: bold; margin-right: 10px; cursor: pointer; }
+    #postsContainer > div { background: white; padding: 10px; margin-top: 15px; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
+    img { max-width: 100%; border-radius: 5px; margin-top: 10px; }
   </style>
 </head>
 <body>
-  <h1 id="welcome">🎉 Welcome!</h1>
 
-  <textarea id="postContent" placeholder="Write your post here..." rows="4"></textarea><br />
+  <h2 id="welcome">🎉 Welcome!</h2>
+
+  <textarea id="postContent" placeholder="Write your post..." rows="3"></textarea>
+  <input type="file" id="postImage" accept="image/*" />
   <button id="postBtn">Post</button>
   <button id="logoutBtn">Logout</button>
 
-  <h2>Posts</h2>
+  <h3>Posts</h3>
   <div id="postsContainer"></div>
 
   <script type="module" src="home.js"></script>

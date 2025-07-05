@@ -1,64 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Firebase Login</title>
+  <meta charset="UTF-8">
+  <title>Login</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      display: grid;
-      place-items: center;
-      height: 100vh;
-      background: #f3f3f3;
-    }
-
-    .login-box {
-      background: white;
-      padding: 2rem;
-      border-radius: 10px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.1);
-      width: 300px;
-    }
-
-    input, button {
-      width: 100%;
-      padding: 10px;
-      margin: 10px 0;
-      font-size: 1rem;
-    }
-
-    button {
-      background: #007bff;
-      color: white;
-      font-weight: bold;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: #0056b3;
-    }
-
-    #message {
-      margin-top: 10px;
-      font-size: 0.9rem;
-      text-align: center;
-    }
-
-    .error {
-      color: red;
-    }
-
-    .success {
-      color: green;
-    }
+    body { font-family: Arial; display: grid; place-items: center; height: 100vh; background: #f3f3f3; }
+    .login-box { background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); width: 300px; }
+    input, button { width: 100%; margin: 10px 0; padding: 10px; font-size: 1rem; }
+    button { background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    #message { color: red; font-size: 0.9rem; text-align: center; }
   </style>
 </head>
 <body>
   <div class="login-box">
-    <h2>Firebase Login</h2>
+    <h2>Login</h2>
     <input type="email" id="email" placeholder="Email" />
     <input type="password" id="password" placeholder="Password" />
     <button onclick="login()">Login</button>
@@ -66,6 +21,47 @@
     <div id="message"></div>
   </div>
 
-  <script type="module" src="script.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD03vMpBpU5TOYwLy-hpImkku-MvwzANLw",
+      authDomain: "srecsocial-98c6f.firebaseapp.com",
+      projectId: "srecsocial-98c6f",
+      storageBucket: "srecsocial-98c6f.appspot.com",
+      messagingSenderId: "92453012487",
+      appId: "1:92453012487:web:1ee9723799a929c64356a2",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    window.login = async function () {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      const msg = document.getElementById("message");
+
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        window.location.href = "home.html";
+      } catch (err) {
+        msg.textContent = "❌ " + err.message;
+      }
+    };
+
+    window.signup = async function () {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      const msg = document.getElementById("message");
+
+      try {
+        await createUserWithEmailAndPassword(auth, email, password);
+        msg.textContent = "✅ Account created!";
+      } catch (err) {
+        msg.textContent = "❌ " + err.message;
+      }
+    };
+  </script>
 </body>
 </html>

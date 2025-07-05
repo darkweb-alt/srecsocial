@@ -1,19 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
-  getAuth,
-  onAuthStateChanged,
-  signOut,
+  getAuth, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  getFirestore,
-  collection,
-  addDoc,
-  updateDoc,
-  doc,
-  serverTimestamp,
-  query,
-  orderBy,
-  onSnapshot,
+  getFirestore, collection, addDoc, updateDoc, doc, serverTimestamp, query, orderBy, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -22,210 +12,100 @@ const firebaseConfig = {
   projectId: "srecsocial-98c6f",
   storageBucket: "srecsocial-98c6f.appspot.com",
   messagingSenderId: "92453012487",
-  appId: "1:92453012487:web:1ee9723799a929c64356a2",
-  measurementId: "G-NYDLMEV2TE",
+  appId: "1:92453012487:web:1ee9723799a929c64356a2"
 };
-
-const GEMINI_API_KEY = "AIzaSyAhnZ9oCOlvsw-Dn8AaoFPFWO6H1POWN4U"; // <-- Replace with your actual Gemini API key
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
 const welcomeEl = document.getElementById("welcome");
-const logoutBtn = document.getElementById("logoutBtn");
 const postBtn = document.getElementById("postBtn");
+const logoutBtn = document.getElementById("logoutBtn");
 const postContent = document.getElementById("postContent");
+const postImage = document.getElementById("postImage");
 const postsContainer = document.getElementById("postsContainer");
 
 let currentUserEmail = null;
 
-// Redirect if not logged in, else set welcome
 onAuthStateChanged(auth, (user) => {
   if (!user) {
     window.location.href = "index.html";
   } else {
     currentUserEmail = user.email;
-    welcomeEl.textContent = `🎉 Welcome, ${user.email}!`;
+    welcomeEl.textContent = `🎉 Welcome, ${user.email}`;
   }
 });
 
 logoutBtn.addEventListener("click", async () => {
-  try {
-    await signOut(auth);
-    window.location.href = "index.html";
-  } catch (err) {
-    alert("Logout failed: " + err.message);
-  }
+  await signOut(auth);
+  window.location.href = "index.html";
 });
 
-const postsCol = collection(db, "posts");
+const postsRef = collection(db, "posts");
 
 postBtn.addEventListener("click", async () => {
   const content = postContent.value.trim();
-  if (!content) {
-    alert("Please write something to post!");
-    return;
-  }
-  if (!currentUserEmail) {
-    alert("User not logged in!");
-    return;
-  }
+  const file = postImage.files[0];
 
-  try {
-    await addDoc(postsCol, {
-      username: currentUserEmail,
-      content,
-      createdAt: serverTimestamp(),
-      likes: 0,
-      likedBy: [],
-      comments: [],
-      shares: 0,
+  if (!content && !file) return alert("Write something or select an image!");
+
+  let imageUrl = null;
+
+  if (file) {
+    const formData = new FormData();
+    formData.append("image", file);
+    const imgbbApi = "3c33c3e4179c4b47ad9b5878b6570727";
+    const res = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbApi}`, {
+      method: "POST",
+      body: formData
     });
-    postContent.value = "";
-  } catch (error) {
-    alert("Error posting: " + error.message);
+    const data = await res.json();
+    imageUrl = data.data.url;
   }
-});
 
-// Toggle like/unlike for post
-async function toggleLike(postId, likedBy) {
-  const postRef = doc(db, "posts", postId);
-  const userHasLiked = likedBy.includes(currentUserEmail);
-
-  try {
-    if (userHasLiked) {
-      await updateDoc(postRef, {
-        likedBy: likedBy.filter((email) => email !== currentUserEmail),
-        likes: likedBy.length - 1,
-      });
-    } else {
-      await updateDoc(postRef, {
-        likedBy: [...likedBy, currentUserEmail],
-        likes: likedBy.length + 1,
-      });
-    }
-  } catch (err) {
-    alert("Error updating like: " + err.message);
-  }
-}
-
-// Call Gemini API to analyze content
-async function callGeminiFlashAPI(prompt) {
-  const url =
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
-
-  const body = {
-    contents: [
-      {
-        parts: [{ text: prompt }],
-      },
-    ],
-  };
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-goog-api-key": GEMINI_API_KEY,
-    },
-    body: JSON.stringify(body),
+  await addDoc(postsRef, {
+    username: currentUserEmail,
+    content,
+    imageUrl,
+    createdAt: serverTimestamp(),
+    likes: 0,
+    likedBy: []
   });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(errorData?.error?.message || "Network response was not ok");
-  }
+  postContent.value = "";
+  postImage.value = null;
+});
 
-  return await response.json();
-}
+const postQuery = query(postsRef, orderBy("createdAt", "desc"));
 
-// Typewriter effect for showing text
-function typewriterEffect(element, text, speed = 20) {
-  element.innerHTML = "";
-  let i = 0;
-
-  function type() {
-    if (i < text.length) {
-      element.innerHTML += text.charAt(i);
-      i++;
-      setTimeout(type, speed);
-    }
-  }
-
-  type();
-}
-
-const postsQuery = query(postsCol, orderBy("createdAt", "desc"));
-onSnapshot(postsQuery, (snapshot) => {
+onSnapshot(postQuery, (snapshot) => {
   postsContainer.innerHTML = "";
-
   snapshot.forEach((docSnap) => {
     const post = docSnap.data();
-    const postId = docSnap.id;
-    const createdAt = post.createdAt
-      ? post.createdAt.toDate().toLocaleString()
-      : "Just now";
-
-    const userHasLiked = post.likedBy?.includes(currentUserEmail);
-
-    const postDiv = document.createElement("div");
-    postDiv.style.marginBottom = "15px";
-    postDiv.style.padding = "10px";
-    postDiv.style.background = "#fff";
-    postDiv.style.borderRadius = "8px";
-    postDiv.style.boxShadow = "0 0 5px rgba(0,0,0,0.1)";
-
-    postDiv.innerHTML = `
-      <strong>${post.username}</strong>
-      <small style="margin-left: 10px; color: #777;">${createdAt}</small>
+    const id = docSnap.id;
+    const userLiked = post.likedBy?.includes(currentUserEmail);
+    const div = document.createElement("div");
+    div.innerHTML = `
+      <strong>${post.username}</strong> 
+      <small style="float:right;">${post.createdAt?.toDate().toLocaleString() || "Now"}</small>
       <p>${post.content}</p>
-      <small>
-        <span id="likes_${postId}" style="cursor:pointer; color: ${
-      userHasLiked ? "#007bff" : "#555"
-    };" title="Click to ${userHasLiked ? "unlike" : "like"}">
-          Likes: ${post.likes}
-        </span>
-        | Comments: ${post.comments.length} | Shares: ${post.shares}
-      </small>
+      ${post.imageUrl ? `<img src="${post.imageUrl}" />` : ""}
+      <small style="cursor:pointer; color: ${userLiked ? 'blue' : 'gray'};" id="like-${id}">👍 Likes: ${post.likes}</small>
     `;
-
-    // Analyze button & container
-    const analyzeBtn = document.createElement("button");
-    analyzeBtn.textContent = "Analyze";
-    analyzeBtn.style.marginTop = "10px";
-    analyzeBtn.style.cursor = "pointer";
-
-    const analysisDiv = document.createElement("div");
-    analysisDiv.style.marginTop = "10px";
-    analysisDiv.style.minHeight = "40px";
-    analysisDiv.style.color = "#333";
-
-    postDiv.appendChild(analyzeBtn);
-    postDiv.appendChild(analysisDiv);
-
-    postsContainer.appendChild(postDiv);
-
-    // Like toggle event
-    const likesSpan = document.getElementById(`likes_${postId}`);
-    likesSpan.addEventListener("click", () =>
-      toggleLike(postId, post.likedBy || [])
-    );
-
-    // Analyze button click event
-    analyzeBtn.addEventListener("click", async () => {
-      analysisDiv.textContent = "⏳ Analyzing...";
-      try {
-        const analysisResult = await callGeminiFlashAPI(
-          post.content + " .Now analyse this and tell me its sentiments in one sentence"
-        );
-        const content =
-          analysisResult?.candidates?.[0]?.content?.parts?.[0]?.text ||
-          "No valid analysis.";
-        typewriterEffect(analysisDiv, content);
-      } catch (error) {
-        analysisDiv.textContent = "❌ Error: " + error.message;
-      }
-    });
+    postsContainer.appendChild(div);
+    document.getElementById(`like-${id}`).onclick = () => toggleLike(id, post.likedBy || []);
   });
 });
+
+async function toggleLike(postId, likedBy) {
+  const ref = doc(db, "posts", postId);
+  const hasLiked = likedBy.includes(currentUserEmail);
+  const updatedLikes = hasLiked
+    ? likedBy.filter(user => user !== currentUserEmail)
+    : [...likedBy, currentUserEmail];
+  await updateDoc(ref, {
+    likedBy: updatedLikes,
+    likes: updatedLikes.length
+  });
+}
