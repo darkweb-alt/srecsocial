@@ -65,7 +65,8 @@ window.sendPrompt = async function () {
   output.innerHTML = "⏳ Waiting for Gemini response...";
 
   try {
-    const result = await callGeminiFlashAPI(prompt);
+    const result = await callGeminiFlashAPI("I have this caption as: " +prompt + " .Now analyse this and tell me its sentiments in just one sentence");
+    //  const result = await callGeminiFlashAPI( prompt );
     const content = result?.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (content) {
