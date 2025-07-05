@@ -3,7 +3,7 @@ import {
   getAuth, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  getFirestore, collection, addDoc, updateDoc, doc, serverTimestamp, query, orderBy, onSnapshot
+  getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -85,13 +85,20 @@ onSnapshot(postQuery, (snapshot) => {
     const post = docSnap.data();
     const id = docSnap.id;
     const userLiked = post.likedBy?.includes(currentUserEmail);
+
     const div = document.createElement("div");
     div.innerHTML = `
       <strong>${post.username}</strong> 
       <small style="float:right;">${post.createdAt?.toDate().toLocaleString() || "Now"}</small>
       <p>${post.content}</p>
-      ${post.imageUrl ? `<img src="${post.imageUrl}" />` : ""}
+      ${post.imageUrl ? `<img src="${post.imageUrl}" style="max-width:100%;height:auto;" />` : ""}
       <small style="cursor:pointer; color: ${userLiked ? 'blue' : 'gray'};" id="like-${id}">👍 Likes: ${post.likes}</small>
+      ${
+        post.username === currentUserEmail
+          ? `<br><button onclick="updatePost('${id}', \`${post.content}\`)">Update</button>
+             <button onclick="deletePost('${id}')">Delete</button>`
+          : ""
+      }
     `;
     postsContainer.appendChild(div);
     document.getElementById(`like-${id}`).onclick = () => toggleLike(id, post.likedBy || []);
@@ -109,3 +116,17 @@ async function toggleLike(postId, likedBy) {
     likes: updatedLikes.length
   });
 }
+
+window.updatePost = async function (postId, currentContent) {
+  const newContent = prompt("Update your post:", currentContent);
+  if (newContent === null) return;
+  const ref = doc(db, "posts", postId);
+  await updateDoc(ref, { content: newContent });
+};
+
+window.deletePost = async function (postId) {
+  if (confirm("Are you sure you want to delete this post?")) {
+    const ref = doc(db, "posts", postId);
+    await deleteDoc(ref);
+  }
+};
