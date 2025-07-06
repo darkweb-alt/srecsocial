@@ -1,17 +1,196 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Login</title>
+  <meta charset="UTF-8" />
+  <title>Login with Chatbot</title>
   <style>
-    body { font-family: Arial; display: grid; place-items: center; height: 100vh; background: #f3f3f3; }
-    .login-box { background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); width: 300px; }
-    input, button { width: 100%; margin: 10px 0; padding: 10px; font-size: 1rem; }
-    button { background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
-    #message { color: red; font-size: 0.9rem; text-align: center; }
+    /* --- Login page styles --- */
+    body {
+      font-family: Arial, sans-serif;
+      background: #f3f3f3;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+
+    .login-box {
+      background: white;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 300px;
+      text-align: center;
+    }
+
+    input, button {
+      width: 100%;
+      margin: 10px 0;
+      padding: 10px;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    #message {
+      color: red;
+      font-size: 0.9rem;
+      min-height: 1.2rem;
+      margin-top: 10px;
+    }
+
+    #message.success {
+      color: green;
+    }
+
+    #message.error {
+      color: red;
+    }
+
+    /* --- Chatbot styles --- */
+    #chatToggleBtn {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      width: 60px;
+      height: 60px;
+      background-color: #007bff;
+      border-radius: 50%;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      color: white;
+      font-size: 30px;
+      cursor: pointer;
+      z-index: 1001;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s;
+    }
+
+    #chatToggleBtn:hover {
+      background-color: #0056b3;
+    }
+
+    #chatToggleIcon {
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+
+    #chatWindow {
+      position: fixed;
+      bottom: 100px;
+      right: 30px;
+      width: 350px;
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      z-index: 1000;
+      opacity: 0;
+      transform: translateY(20px);
+      pointer-events: none;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    #chatWindow.open {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    #chatHeader {
+      background-color: #007bff;
+      color: white;
+      padding: 15px;
+      font-weight: bold;
+      font-size: 18px;
+      border-radius: 15px 15px 0 0;
+    }
+
+    .chat-container {
+      padding: 15px;
+      height: 250px;
+      overflow-y: auto;
+      background: #fafafa;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .input-container {
+      display: flex;
+      padding: 10px;
+      border-top: 1px solid #ddd;
+      background: white;
+    }
+
+    .input-container input[type="text"] {
+      flex: 1;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 10px 0 0 10px;
+      outline: none;
+    }
+
+    .input-container button {
+      padding: 10px 20px;
+      border: none;
+      background-color: #0056b3;
+      width: 60px;
+      align-items: center;
+      justify-content: center;
+      justify-items: center;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 0 10px 10px 0;
+      transition: background-color 0.3s;
+    }
+
+    .input-container button:hover {
+      background-color: #0056b3;
+    }
+
+    .message {
+      margin: 8px 0;
+      padding: 10px 15px;
+      border-radius: 20px;
+      max-width: 75%;
+      word-wrap: break-word;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .user {
+      background: #d1e7dd;
+      align-self: flex-end;
+    }
+
+    .bot {
+      background: #f8d7da;
+      align-self: flex-start;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 <body>
+
+  <!-- Login Form -->
   <div class="login-box">
     <h2>Login</h2>
     <input type="email" id="email" placeholder="Email" />
@@ -21,9 +200,29 @@
     <div id="message"></div>
   </div>
 
+  <!-- Chatbot UI -->
+  <div id="chatToggleBtn" title="Open Chat">
+    <span id="chatToggleIcon">💬</span>
+  </div>
+
+  <div id="chatWindow">
+    <div id="chatHeader">FAQ Chatbot</div>
+    <div class="chat-container" id="chatBox"></div>
+    <div class="input-container">
+      <input type="text" id="userInput" placeholder="Ask a question..." autocomplete="off" />
+      <button class="sendBtn" id="sendBtn">Send</button>
+    </div>
+  </div>
+
+  <!-- Firebase Auth + Login Script -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import {
+      getAuth,
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyD03vMpBpU5TOYwLy-hpImkku-MvwzANLw",
@@ -32,10 +231,17 @@
       storageBucket: "srecsocial-98c6f.appspot.com",
       messagingSenderId: "92453012487",
       appId: "1:92453012487:web:1ee9723799a929c64356a2",
+      measurementId: "G-NYDLMEV2TE"
     };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        window.location.href = "home.html";
+      }
+    });
 
     window.login = async function () {
       const email = document.getElementById("email").value;
@@ -43,10 +249,15 @@
       const msg = document.getElementById("message");
 
       try {
-        await signInWithEmailAndPassword(auth, email, password);
-        window.location.href = "home.html";
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        msg.textContent = `✅ Logged in as ${userCredential.user.email}`;
+        msg.className = "success";
+        setTimeout(() => window.location.href = "home.html", 1000);
       } catch (err) {
-        msg.textContent = "❌ " + err.message;
+        msg.textContent = err.message.includes("auth/invalid-credential")
+          ? "❌ Invalid credentials. Please check your email/password."
+          : "❌ " + err.message;
+        msg.className = "error";
       }
     };
 
@@ -56,12 +267,94 @@
       const msg = document.getElementById("message");
 
       try {
-        await createUserWithEmailAndPassword(auth, email, password);
-        msg.textContent = "✅ Account created!";
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        msg.textContent = `✅ Account created: ${userCredential.user.email}`;
+        msg.className = "success";
       } catch (err) {
         msg.textContent = "❌ " + err.message;
+        msg.className = "error";
       }
     };
+  </script>
+
+  <!-- Chatbot Logic -->
+  <script>
+    const faqChatData = [
+      { question: "What is JavaScript?", answer: "JavaScript is a programming language used to create dynamic and interactive content on websites." },
+      { question: "What is the difference between == and ===?", answer: "`==` checks for value equality with type coercion, while `===` checks for both value and type equality." },
+      { question: "How can I create a function in JavaScript?", answer: "You can create a function using the `function` keyword or using arrow functions like `() => {}`." },
+      { question: "What is an array?", answer: "An array is a special variable that can hold more than one value at a time." },
+    ];
+
+    const chatToggleBtn = document.getElementById('chatToggleBtn');
+    const chatToggleIcon = document.getElementById('chatToggleIcon');
+    const chatWindow = document.getElementById('chatWindow');
+    const chatBox = document.getElementById('chatBox');
+    const userInput = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
+
+    chatToggleBtn.addEventListener('click', () => {
+      chatWindow.classList.toggle('open');
+      chatToggleIcon.textContent = chatWindow.classList.contains('open') ? "❌" : "💬";
+      if (chatWindow.classList.contains('open')) {
+        userInput.focus();
+      }
+    });
+
+    function appendMessage(sender, message = "") {
+      const msg = document.createElement("div");
+      msg.classList.add("message", sender);
+      msg.textContent = message;
+      chatBox.appendChild(msg);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function showTypewriterReply(reply) {
+      const msgElement = document.createElement("div");
+      msgElement.classList.add("message", "bot");
+      chatBox.appendChild(msgElement);
+      let index = 0;
+      function typeChar() {
+        if (index < reply.length) {
+          msgElement.textContent += reply.charAt(index);
+          index++;
+          chatBox.scrollTop = chatBox.scrollHeight;
+          setTimeout(typeChar, 30);
+        }
+      }
+      setTimeout(typeChar, 300);
+    }
+
+    function handleUserInput() {
+      const input = userInput.value.trim();
+      if (!input) return;
+      appendMessage("user", input);
+      userInput.value = "";
+
+      const getKeywords = text => text.toLowerCase().replace(/[.,!?]/g, '').split(/\s+/).filter(w => w.length > 2);
+      const inputKeywords = getKeywords(input);
+      let bestMatch = null, maxOverlap = 0;
+
+      faqChatData.forEach(faq => {
+        const faqKeywords = getKeywords(faq.question);
+        const overlap = faqKeywords.filter(word => inputKeywords.includes(word)).length;
+        if (overlap > maxOverlap) {
+          maxOverlap = overlap;
+          bestMatch = faq;
+        }
+      });
+
+      const botReply = (bestMatch && maxOverlap >= 1)
+        ? bestMatch.answer
+        : "Sorry, I don't know the answer to that yet.";
+
+      showTypewriterReply(botReply);
+    }
+
+    sendBtn.addEventListener('click', handleUserInput);
+    userInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') handleUserInput();
+    });
   </script>
 </body>
 </html>
