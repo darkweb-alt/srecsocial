@@ -76,6 +76,7 @@
       align-items: center;
       justify-content: center;
       transition: background 0.3s;
+      user-select: none;
     }
 
     #chatToggleBtn:hover {
@@ -126,6 +127,7 @@
       background: #fafafa;
       display: flex;
       flex-direction: column;
+      gap: 8px;
     }
 
     .input-container {
@@ -149,9 +151,6 @@
       border: none;
       background-color: #0056b3;
       width: 60px;
-      align-items: center;
-      justify-content: center;
-      justify-items: center;
       color: white;
       font-weight: bold;
       cursor: pointer;
@@ -160,11 +159,10 @@
     }
 
     .input-container button:hover {
-      background-color: #0056b3;
+      background-color: #003f7f;
     }
 
     .message {
-      margin: 8px 0;
       padding: 10px 15px;
       border-radius: 20px;
       max-width: 75%;
@@ -192,9 +190,9 @@
 
   <!-- Login Form -->
   <div class="login-box">
-    <h2>Login</h2>
-    <input type="email" id="email" placeholder="Email" />
-    <input type="password" id="password" placeholder="Password" />
+    <h2>SREC Wall</h2>
+    <input type="email" id="email" placeholder="Email" autocomplete="username" />
+    <input type="password" id="password" placeholder="Password" autocomplete="current-password" />
     <button onclick="login()">Login</button>
     <button onclick="signup()">Sign Up</button>
     <div id="message"></div>
@@ -237,38 +235,60 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
+    const chatToggleBtn = document.getElementById('chatToggleBtn');
+    const chatWindow = document.getElementById('chatWindow');
+
     onAuthStateChanged(auth, (user) => {
+      const loginBox = document.querySelector('.login-box');
+      chatToggleBtn.style.display = "flex"; // ALWAYS show chat toggle button
+
       if (user) {
-        window.location.href = "home.html";
+  loginBox.style.display = "none"; // hide login form on login
+  window.location.href = "home.html";  // redirect after login
+}
+ else {
+        loginBox.style.display = "block"; // show login form if not logged in
+        chatWindow.classList.remove('open'); // close chat if open
       }
     });
 
     window.login = async function () {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
       const msg = document.getElementById("message");
+      msg.textContent = "";
+      msg.className = "";
+
+      if (!email || !password) {
+        msg.textContent = "❌ Please enter email and password.";
+        msg.className = "error";
+        return;
+      }
 
       try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        msg.textContent = `✅ Logged in as ${userCredential.user.email}`;
-        msg.className = "success";
-        setTimeout(() => window.location.href = "home.html", 1000);
+        await signInWithEmailAndPassword(auth, email, password);
       } catch (err) {
-        msg.textContent = err.message.includes("auth/invalid-credential")
-          ? "❌ Invalid credentials. Please check your email/password."
-          : "❌ " + err.message;
+        msg.textContent = "❌ " + err.message;
         msg.className = "error";
       }
     };
 
     window.signup = async function () {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
       const msg = document.getElementById("message");
+      msg.textContent = "";
+      msg.className = "";
+
+      if (!email || !password) {
+        msg.textContent = "❌ Please enter email and password.";
+        msg.className = "error";
+        return;
+      }
 
       try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        msg.textContent = `✅ Account created: ${userCredential.user.email}`;
+        await createUserWithEmailAndPassword(auth, email, password);
+        msg.textContent = "✅ Account created! Please login.";
         msg.className = "success";
       } catch (err) {
         msg.textContent = "❌ " + err.message;
@@ -279,26 +299,33 @@
 
   <!-- Chatbot Logic -->
   <script>
-    const faqChatData = [
-      { question: "What is JavaScript?", answer: "JavaScript is a programming language used to create dynamic and interactive content on websites." },
-      { question: "What is the difference between == and ===?", answer: "`==` checks for value equality with type coercion, while `===` checks for both value and type equality." },
-      { question: "How can I create a function in JavaScript?", answer: "You can create a function using the `function` keyword or using arrow functions like `() => {}`." },
-      { question: "What is an array?", answer: "An array is a special variable that can hold more than one value at a time." },
-    ];
-
-    const chatToggleBtn = document.getElementById('chatToggleBtn');
     const chatToggleIcon = document.getElementById('chatToggleIcon');
-    const chatWindow = document.getElementById('chatWindow');
     const chatBox = document.getElementById('chatBox');
     const userInput = document.getElementById('userInput');
     const sendBtn = document.getElementById('sendBtn');
 
-    chatToggleBtn.addEventListener('click', () => {
-      chatWindow.classList.toggle('open');
-      chatToggleIcon.textContent = chatWindow.classList.contains('open') ? "❌" : "💬";
-      if (chatWindow.classList.contains('open')) {
-        userInput.focus();
+    let faqChatData = [];
+
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzsBf-ALL0bCb91a1_VgtfZIooVxAl_oMRT5BKHgpkEPkggf8REbhGL0WGycbzSGtHJ/exec";
+
+    async function loadFaqData() {
+      try {
+        const response = await fetch(GOOGLE_SCRIPT_URL);
+        if (!response.ok) throw new Error("Network response was not ok");
+        const data = await response.json();
+        faqChatData = data;
+      } catch (error) {
+        console.error("Failed to fetch FAQ data", error);
+        appendMessage("bot", "⚠️ Failed to load FAQ data.");
       }
+    }
+
+    loadFaqData();
+
+    document.getElementById('chatToggleBtn').addEventListener('click', () => {
+      const open = chatWindow.classList.toggle('open');
+      chatToggleIcon.textContent = open ? "❌" : "💬";
+      if (open) userInput.focus();
     });
 
     function appendMessage(sender, message = "") {
@@ -356,5 +383,12 @@
       if (e.key === 'Enter') handleUserInput();
     });
   </script>
+
+  <!--
+    Note:
+    Your Google Apps Script Library URL is:
+    https://script.google.com/macros/library/d/1-i4-CkDsipFVjCvb0FZyh21yI4wtb9D32381o5BcJ407k4m85V0HaSSu/1
+    (Include/use it inside your Apps Script project if needed.)
+  -->
 </body>
 </html>
