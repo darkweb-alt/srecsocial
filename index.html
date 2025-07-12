@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Login with Chatbot</title>
+  <title>Login with Gemini Chatbot</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    /* --- Login page styles --- */
     body {
       font-family: Arial, sans-serif;
       background: #f3f3f3;
@@ -58,7 +58,7 @@
       color: red;
     }
 
-    /* --- Chatbot styles --- */
+    /* --- New Gemini Chatbot styles --- */
     #chatToggleBtn {
       position: fixed;
       bottom: 30px;
@@ -91,7 +91,8 @@
       position: fixed;
       bottom: 100px;
       right: 30px;
-      width: 350px;
+      width: 400px;
+      max-height: 500px;
       background: white;
       border-radius: 15px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.3);
@@ -118,51 +119,52 @@
       font-weight: bold;
       font-size: 18px;
       border-radius: 15px 15px 0 0;
+      user-select: none;
     }
 
     .chat-container {
-      padding: 15px;
-      height: 250px;
+      padding: 20px;
+      flex: 1;
       overflow-y: auto;
-      background: #fafafa;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      background: #fafafa;
     }
 
     .input-container {
-      display: flex;
-      padding: 10px;
-      border-top: 1px solid #ddd;
-      background: white;
-    }
+  display: flex;
+  border-top: 1px solid #ddd;
+  align-items: center;
+}
 
-    .input-container input[type="text"] {
-      flex: 1;
-      padding: 10px;
-      font-size: 16px;
-      border: 1px solid #ccc;
-      border-radius: 10px 0 0 10px;
-      outline: none;
-    }
+.input-container input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 15px;
+  font-size: 16px;
+  border: none;
+  outline: none;
+  border-radius: 0 0 0 15px;
+}
 
-    .input-container button {
-      padding: 10px 20px;
-      border: none;
+.input-container button.sendBtn {
+  flex: none;
+  width: auto;
+  padding: 12px 16px;
+  border: none;
+  background-color: #007bff;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 0 0 15px 0;
+  transition: background-color 0.3s;
+}
+    button.sendBtn:hover {
       background-color: #0056b3;
-      width: 60px;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-      border-radius: 0 10px 10px 0;
-      transition: background-color 0.3s;
-    }
-
-    .input-container button:hover {
-      background-color: #003f7f;
     }
 
     .message {
+      margin: 8px 0;
       padding: 10px 15px;
       border-radius: 20px;
       max-width: 75%;
@@ -184,7 +186,16 @@
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
+
+    @media (max-width: 500px) {
+      #chatWindow {
+        width: 90%;
+        right: 5%;
+        bottom: 90px;
+      }
+    }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
 
@@ -198,16 +209,16 @@
     <div id="message"></div>
   </div>
 
-  <!-- Chatbot UI -->
-  <div id="chatToggleBtn" title="Open Chat">
+  <!-- Gemini Chatbot -->
+  <div id="chatToggleBtn" title="Open Chat" aria-label="Toggle chat">
     <span id="chatToggleIcon">💬</span>
   </div>
 
-  <div id="chatWindow">
-    <div id="chatHeader">FAQ Chatbot</div>
+  <div id="chatWindow" role="dialog" aria-modal="true" aria-labelledby="chatHeader">
+    <div id="chatHeader">Gemini College FAQ Chatbot</div>
     <div class="chat-container" id="chatBox"></div>
     <div class="input-container">
-      <input type="text" id="userInput" placeholder="Ask a question..." autocomplete="off" />
+      <input type="text" id="userInput" placeholder="Ask about your college..." autocomplete="off" />
       <button class="sendBtn" id="sendBtn">Send</button>
     </div>
   </div>
@@ -215,12 +226,7 @@
   <!-- Firebase Auth + Login Script -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import {
-      getAuth,
-      signInWithEmailAndPassword,
-      createUserWithEmailAndPassword,
-      onAuthStateChanged
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyD03vMpBpU5TOYwLy-hpImkku-MvwzANLw",
@@ -240,19 +246,17 @@
 
     onAuthStateChanged(auth, (user) => {
       const loginBox = document.querySelector('.login-box');
-      chatToggleBtn.style.display = "flex"; // ALWAYS show chat toggle button
-
+      chatToggleBtn.style.display = "flex";
       if (user) {
-  loginBox.style.display = "none"; // hide login form on login
-  window.location.href = "home.html";  // redirect after login
-}
- else {
-        loginBox.style.display = "block"; // show login form if not logged in
-        chatWindow.classList.remove('open'); // close chat if open
+        loginBox.style.display = "none";
+        window.location.href = "home.html";
+      } else {
+        loginBox.style.display = "block";
+        chatWindow.classList.remove('open');
       }
     });
 
-    window.login = async function () {
+    window.login = async function() {
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value.trim();
       const msg = document.getElementById("message");
@@ -264,7 +268,6 @@
         msg.className = "error";
         return;
       }
-
       try {
         await signInWithEmailAndPassword(auth, email, password);
       } catch (err) {
@@ -273,7 +276,7 @@
       }
     };
 
-    window.signup = async function () {
+    window.signup = async function() {
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value.trim();
       const msg = document.getElementById("message");
@@ -285,7 +288,6 @@
         msg.className = "error";
         return;
       }
-
       try {
         await createUserWithEmailAndPassword(auth, email, password);
         msg.textContent = "✅ Account created! Please login.";
@@ -297,98 +299,170 @@
     };
   </script>
 
-  <!-- Chatbot Logic -->
-  <script>
-    const chatToggleIcon = document.getElementById('chatToggleIcon');
-    const chatBox = document.getElementById('chatBox');
-    const userInput = document.getElementById('userInput');
-    const sendBtn = document.getElementById('sendBtn');
+  <!-- Gemini Chatbot Logic (same as your original code) -->
+  <!-- <script type="module">
+    // ...Paste your Gemini Chatbot JavaScript here...
+  </script> -->
+  <script type="module">
+// === YOUR CONFIGURATION ===
+const GEMINI_API_KEY = "AIzaSyAhnZ9oCOlvsw-Dn8AaoFPFWO6H1POWN4U";
+const FAQ_JSON_URL = "https://script.google.com/macros/s/AKfycbzsBf-ALL0bCb91a1_VgtfZIooVxAl_oMRT5BKHgpkEPkggf8REbhGL0WGycbzSGtHJ/exec";
 
-    let faqChatData = [];
+let faqs = [];
 
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzsBf-ALL0bCb91a1_VgtfZIooVxAl_oMRT5BKHgpkEPkggf8REbhGL0WGycbzSGtHJ/exec";
+async function loadFAQs() {
+  try {
+    const response = await fetch(FAQ_JSON_URL);
+    if (!response.ok) throw new Error("Failed to fetch FAQs");
+    faqs = await response.json();
+    console.log("Loaded FAQs:", faqs.length);
+  } catch (err) {
+    console.error("Error loading FAQs:", err);
+    faqs = [];
+  }
+}
 
-    async function loadFaqData() {
-      try {
-        const response = await fetch(GOOGLE_SCRIPT_URL);
-        if (!response.ok) throw new Error("Network response was not ok");
-        const data = await response.json();
-        faqChatData = data;
-      } catch (error) {
-        console.error("Failed to fetch FAQ data", error);
-        appendMessage("bot", "⚠️ Failed to load FAQ data.");
-      }
+function getKeywords(text) {
+  return text.toLowerCase().replace(/[.,!?]/g, "").split(/\s+/).filter(w => w.length > 2);
+}
+
+function findRelevantFaqs(question, faqs, maxResults = 3) {
+  const questionKeywords = getKeywords(question);
+  if (questionKeywords.length === 0) return [];
+
+  const scoredFaqs = faqs.map(faq => {
+    const faqKeywords = getKeywords(faq.question);
+    const overlapCount = faqKeywords.filter(k => questionKeywords.includes(k)).length;
+    return { faq, score: overlapCount };
+  });
+
+  return scoredFaqs
+    .filter(f => f.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, maxResults)
+    .map(f => f.faq);
+}
+
+async function callGeminiFlashAPI(prompt) {
+  const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+  const body = { contents: [{ parts: [{ text: prompt }] }] };
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-goog-api-key": GEMINI_API_KEY,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error?.message || "Gemini API error");
+  }
+
+  return await response.json();
+}
+
+function typewriterMarkdown(element, markdown, speed = 10) {
+  const html = marked.parse(markdown);
+  element.innerHTML = "";
+  let i = 0;
+  const tempDiv = document.createElement("div");
+  tempDiv.innerHTML = html;
+  const finalHTML = tempDiv.innerHTML;
+
+  function type() {
+    if (i <= finalHTML.length) {
+      element.innerHTML = finalHTML.slice(0, i);
+      i++;
+      setTimeout(type, speed);
     }
+  }
+  type();
+}
 
-    loadFaqData();
+// const chatToggleBtn = document.getElementById('chatToggleBtn');
+const chatToggleIcon = document.getElementById('chatToggleIcon');
+// const chatWindow = document.getElementById('chatWindow');
+const chatBox = document.getElementById('chatBox');
+const userInput = document.getElementById('userInput');
+const sendBtn = document.getElementById('sendBtn');
 
-    document.getElementById('chatToggleBtn').addEventListener('click', () => {
-      const open = chatWindow.classList.toggle('open');
-      chatToggleIcon.textContent = open ? "❌" : "💬";
-      if (open) userInput.focus();
+function changeIcon(newIcon, newTitle) {
+  chatToggleIcon.style.opacity = 0;
+  chatToggleIcon.style.transform = "scale(0.3)";
+  setTimeout(() => {
+    chatToggleIcon.textContent = newIcon;
+    chatToggleBtn.title = newTitle;
+    chatToggleIcon.style.opacity = 1;
+    chatToggleIcon.style.transform = "scale(1)";
+  }, 300);
+}
+
+chatToggleBtn.addEventListener('click', () => {
+  chatWindow.classList.toggle('open');
+  if (chatWindow.classList.contains('open')) {
+    changeIcon("❌", "Close Chat");
+    userInput.focus();
+  } else {
+    changeIcon("💬", "Open Chat");
+  }
+});
+
+function appendMessage(sender, message = "") {
+  const msg = document.createElement("div");
+  msg.classList.add("message", sender);
+  msg.textContent = message;
+  chatBox.appendChild(msg);
+  chatBox.scrollTop = chatBox.scrollHeight;
+  return msg;
+}
+
+async function handleUserInput() {
+  const input = userInput.value.trim();
+  if (!input) return;
+
+  appendMessage("user", input);
+  userInput.value = "";
+
+  const relevantFaqs = findRelevantFaqs(input, faqs, 3);
+  let prompt = `You are a helpful assistant answering questions about Sri Ramakrishna Engineering College.\n\nHere are some FAQs:\n\n`;
+  if (relevantFaqs.length === 0) {
+    prompt += "(No directly relevant FAQs found.)\n\n";
+  } else {
+    relevantFaqs.forEach(faq => {
+      prompt += `Q: ${faq.question}\nA: ${faq.answer}\n\n`;
     });
+  }
+  prompt += `User's question:\n"${input}"\n\nPlease answer concisely and professionally using the information above if possible.`;
 
-    function appendMessage(sender, message = "") {
-      const msg = document.createElement("div");
-      msg.classList.add("message", sender);
-      msg.textContent = message;
-      chatBox.appendChild(msg);
-      chatBox.scrollTop = chatBox.scrollHeight;
+  const botMsg = document.createElement("div");
+  botMsg.classList.add("message", "bot");
+  botMsg.textContent = "⏳ Thinking...";
+  chatBox.appendChild(botMsg);
+  chatBox.scrollTop = chatBox.scrollHeight;
+
+  try {
+    const result = await callGeminiFlashAPI(prompt);
+    const content = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (content) {
+      typewriterMarkdown(botMsg, content);
+    } else {
+      botMsg.textContent = "❌ Sorry, no response.";
     }
+  } catch (err) {
+    botMsg.textContent = "❌ Error: " + err.message;
+  }
+}
 
-    function showTypewriterReply(reply) {
-      const msgElement = document.createElement("div");
-      msgElement.classList.add("message", "bot");
-      chatBox.appendChild(msgElement);
-      let index = 0;
-      function typeChar() {
-        if (index < reply.length) {
-          msgElement.textContent += reply.charAt(index);
-          index++;
-          chatBox.scrollTop = chatBox.scrollHeight;
-          setTimeout(typeChar, 30);
-        }
-      }
-      setTimeout(typeChar, 300);
-    }
+sendBtn.addEventListener('click', handleUserInput);
+userInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') handleUserInput();
+});
 
-    function handleUserInput() {
-      const input = userInput.value.trim();
-      if (!input) return;
-      appendMessage("user", input);
-      userInput.value = "";
-
-      const getKeywords = text => text.toLowerCase().replace(/[.,!?]/g, '').split(/\s+/).filter(w => w.length > 2);
-      const inputKeywords = getKeywords(input);
-      let bestMatch = null, maxOverlap = 0;
-
-      faqChatData.forEach(faq => {
-        const faqKeywords = getKeywords(faq.question);
-        const overlap = faqKeywords.filter(word => inputKeywords.includes(word)).length;
-        if (overlap > maxOverlap) {
-          maxOverlap = overlap;
-          bestMatch = faq;
-        }
-      });
-
-      const botReply = (bestMatch && maxOverlap >= 1)
-        ? bestMatch.answer
-        : "Sorry, I don't know the answer to that yet.";
-
-      showTypewriterReply(botReply);
-    }
-
-    sendBtn.addEventListener('click', handleUserInput);
-    userInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter') handleUserInput();
-    });
-  </script>
-
-  <!--
-    Note:
-    Your Google Apps Script Library URL is:
-    https://script.google.com/macros/library/d/1-i4-CkDsipFVjCvb0FZyh21yI4wtb9D32381o5BcJ407k4m85V0HaSSu/1
-    (Include/use it inside your Apps Script project if needed.)
-  -->
+loadFAQs();
+</script>
 </body>
 </html>
